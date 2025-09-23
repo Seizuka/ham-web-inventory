@@ -5,29 +5,32 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const { user, loginWithEmail } = useAuth();
+  const { user, loginWithEmail, loading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // Setelah login, redirect otomatis sesuai role
   useEffect(() => {
+    if (loading) return; // 1. TUNGGU LOADING SELESAI
     if (!user) return;
     if (user.role === "user") {
       router.replace("/user/dashboard");
-    } else if (user.role === "superadmin" || user.role === "admin_inventory") {
+    } else if (user.role === "superadmin") {
+      router.replace("/superadmin/dashboard");
+    } else if (user.role === "admin_inventory") {
       router.replace("/admin/dashboard");
     }
-  }, [user, router]);
+  }, [user, loading, router]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!loginWithEmail(email, password)) {
       setError("Email atau password salah!");
     }
-    // Tidak perlu router.push di sini, karena useEffect di atas akan jalan otomatis setelah user berubah
   }
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>; // 2. RENDER LOADING
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-900">

@@ -1,19 +1,38 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import { useSidebar } from "../contexts/SidebarContext";
 import { useAuth } from "../contexts/AuthContext";
-import { MENU_ITEMS } from "../config/menu";
 
 export default function Sidebar() {
   const { isOpen } = useSidebar();
   const { user } = useAuth();
 
-  // Filter menu sesuai role user
-  const menus = user
-    ? MENU_ITEMS.filter((item) => item.roles.includes(user.role))
-    : [];
+  // Tidak tampil sidebar kalau belum login
+  if (!user) return null;
+
+  // List menu sesuai role
+  let menu: Array<{ name: string; href: string }> = [];
+
+  if (user.role === "superadmin") {
+    menu = [
+      { name: "Dashboard", href: "/superadmin/dashboard" },
+      { name: "List Barang", href: "/superadmin/list-barang" },
+      { name: "Request Barang", href: "/superadmin/request-barang" },
+      { name: "Role", href: "/superadmin/role" },
+      { name: "User", href: "/superadmin/user" },
+    ];
+  } else if (user.role === "admin_inventory") {
+    menu = [
+      { name: "Dashboard", href: "/admin/dashboard" },
+      { name: "List Barang", href: "/admin/list-barang" },
+    ];
+  } else if (user.role === "user") {
+    menu = [
+      { name: "Dashboard", href: "/user/dashboard" },
+      { name: "Request Barang", href: "/user/request-barang" },
+    ];
+  }
 
   return (
     <aside
@@ -23,9 +42,12 @@ export default function Sidebar() {
     >
       <nav className="p-4 pt-16 space-y-4 text-sm">
         <ul className="flex flex-col gap-3">
-          {menus.map((item) => (
-            <li key={item.path}>
-              <Link href={item.path} className="block hover:font-semibold">
+          {menu.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className="block hover:font-semibold hover:bg-blue-800 rounded px-3 py-2 transition"
+              >
                 {item.name}
               </Link>
             </li>

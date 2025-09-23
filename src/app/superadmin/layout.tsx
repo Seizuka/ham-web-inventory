@@ -15,9 +15,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
           isOpen ? "pl-64" : "pl-0"
         }`}
       >
-        {/* Navbar */}
         <Navbar />
-        {/* Konten Utama */}
         <main className="p-4 pt-20 overflow-y-auto flex-1 bg-gray-100 min-h-screen">
           {children}
         </main>
@@ -28,8 +26,8 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-      <SidebarProvider>
-        <LayoutWrapper>{children}</LayoutWrapper>
-      </SidebarProvider>
+    <SidebarProvider>
+      <LayoutWrapper>{children}</LayoutWrapper>
+    </SidebarProvider>
   );
 }

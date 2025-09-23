@@ -1,7 +1,6 @@
-// contexts/AuthContext.tsx
 "use client";
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Role } from "../config/roles";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { Role } from "../config/roles"; // Pastikan file roles berisi type "superadmin" | "admin_inventory" | "user"
 
 type User = {
   id: string;
@@ -19,35 +18,38 @@ const USERS: Array<{ email: string; password: string; role: Role }> = [
 
 type AuthContextType = {
   user: User | null;
+  loading: boolean;
   loginWithEmail: (email: string, password: string) => boolean;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Restore user dari localStorage ketika pertama kali mount
+  // Hydrate user from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("user");
+    const saved = typeof window !== "undefined" ? localStorage.getItem("user") : null;
     if (saved) {
       setUser(JSON.parse(saved));
     }
+    setLoading(false);
   }, []);
 
   const loginWithEmail = (email: string, password: string) => {
     const found = USERS.find(u => u.email === email && u.password === password);
     if (found) {
-      const u = {
+      const userObj: User = {
         id: found.email,
         name: found.email.split("@")[0],
         email: found.email,
         role: found.role,
         avatarUrl: ""
       };
-      setUser(u);
-      localStorage.setItem("user", JSON.stringify(u)); // <-- simpan ke localStorage
+      setUser(userObj);
+      localStorage.setItem("user", JSON.stringify(userObj));
       return true;
     }
     return false;
@@ -55,11 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("user"); // <-- hapus dari localStorage
+    localStorage.removeItem("user");
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginWithEmail, logout }}>
+    <AuthContext.Provider value={{ user, loading, loginWithEmail, logout }}>
       {children}
     </AuthContext.Provider>
   );
