@@ -19,7 +19,7 @@ export default function Sidebar() {
       { name: "Dashboard", href: "/dashboard" },
       { name: "List Barang", href: "/items" },
       { name: "Request Barang", href: "/requests" },
-      { name: "Role", href: "/role" },
+      //{ name: "Role", href: "/role" },
       { name: "User", href: "/users" },
       { name: "Peminjaman", href: "/borrow" },
     ];
