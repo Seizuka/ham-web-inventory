@@ -55,7 +55,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
-        {/* SEARCH BAR LEBIH JELAS */}
+        {/* SEARCH BAR */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
           <h2 className="text-lg font-semibold text-black">Daftar Barang</h2>
           <div className="flex flex-col items-start w-full md:w-auto">
@@ -72,7 +72,7 @@ export default function DashboardPage() {
                 className="border-2 border-blue-600 text-black px-10 py-2 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 transition w-64 placeholder-gray-400"
                 autoComplete="off"
               />
-              {/* Kaca pembesar */}
+              {/* Icon search */}
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} fill="none" viewBox="0 0 24 24">
                   <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
