@@ -15,11 +15,11 @@ export default function LoginPage() {
     if (loading) return; // 1. TUNGGU LOADING SELESAI
     if (!user) return;
     if (user.role === "user") {
-      router.replace("/user/dashboard");
+      router.replace("/dashboard");
     } else if (user.role === "superadmin") {
-      router.replace("/superadmin/dashboard");
+      router.replace("/dashboard");
     } else if (user.role === "admin_inventory") {
-      router.replace("/admin/dashboard");
+      router.replace("/dashboard");
     }
   }, [user, loading, router]);
 

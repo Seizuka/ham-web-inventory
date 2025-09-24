@@ -11,26 +11,29 @@ export default function Sidebar() {
   // Tidak tampil sidebar kalau belum login
   if (!user) return null;
 
-  // List menu sesuai role
+  // List menu sesuai role, path universal TANPA /user /admin /superadmin
   let menu: Array<{ name: string; href: string }> = [];
 
   if (user.role === "superadmin") {
     menu = [
-      { name: "Dashboard", href: "/superadmin/dashboard" },
-      { name: "List Barang", href: "/superadmin/list-barang" },
-      { name: "Request Barang", href: "/superadmin/request-barang" },
-      { name: "Role", href: "/superadmin/role" },
-      { name: "User", href: "/superadmin/user" },
+      { name: "Dashboard", href: "/dashboard" },
+      { name: "List Barang", href: "/items" },
+      { name: "Request Barang", href: "/requests" },
+      { name: "Role", href: "/role" },
+      { name: "User", href: "/users" },
+      { name: "Peminjaman", href: "/borrow" },
     ];
   } else if (user.role === "admin_inventory") {
     menu = [
-      { name: "Dashboard", href: "/admin/dashboard" },
-      { name: "List Barang", href: "/admin/list-barang" },
+      { name: "Dashboard", href: "/dashboard" },
+      { name: "List Barang", href: "/items" },
+      { name: "Request Barang", href: "/requests" },
+      { name: "Peminjaman", href: "/borrow" },
     ];
   } else if (user.role === "user") {
     menu = [
-      { name: "Dashboard", href: "/user/dashboard" },
-      { name: "Request Barang", href: "/user/request-barang" },
+      { name: "Dashboard", href: "/dashboard" },
+      { name: "Request Barang", href: "/requests" },
     ];
   }
 

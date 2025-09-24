@@ -1,5 +1,5 @@
 "use client";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../../../../contexts/AuthContext";
 import { useState, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
