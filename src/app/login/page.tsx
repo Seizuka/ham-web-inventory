@@ -1,4 +1,3 @@
-// src/app/login/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -12,31 +11,40 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (loading) return; // 1. TUNGGU LOADING SELESAI
+    if (loading) return;
     if (!user) return;
-    if (user.role === "user") {
-      router.replace("/dashboard");
-    } else if (user.role === "superadmin") {
-      router.replace("/dashboard");
-    } else if (user.role === "admin_inventory") {
-      router.replace("/dashboard");
-    }
+    router.replace("/dashboard");
   }, [user, loading, router]);
 
-  function handleSubmit(e: React.FormEvent) {
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!loginWithEmail(email, password)) {
-      setError("Email atau password salah!");
+    setError("");
+    try {
+      const success = await loginWithEmail(email, password);
+      if (!success) {
+        setError("Email atau password salah!");
+      }
+    } catch (err: any) {
+      setError(
+        err?.message === "Terjadi kesalahan sistem. Silakan coba beberapa saat lagi."
+          ? err.message
+          : "Terjadi kesalahan sistem. Silakan coba beberapa saat lagi."
+      );
     }
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>; // 2. RENDER LOADING
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-900">
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow w-full max-w-md">
         <h1 className="text-2xl font-bold text-center mb-6">Login Sistem Peminjaman IT</h1>
-
         <label className="block mb-4">
           <span>Email</span>
           <input
@@ -47,7 +55,6 @@ export default function LoginPage() {
             required
           />
         </label>
-
         <label className="block mb-6">
           <span>Password</span>
           <input
@@ -58,9 +65,7 @@ export default function LoginPage() {
             required
           />
         </label>
-
         {error && <div className="mb-4 text-red-500 text-center">{error}</div>}
-
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
@@ -68,8 +73,8 @@ export default function LoginPage() {
           Login
         </button>
         <div className="mt-4 text-xs text-gray-500">
-          <b>Super Admin:</b> super@admin.com / super123<br/>
-          <b>Admin Inventory:</b> inventory@admin.com / admin123<br/>
+          <b>Super Admin:</b> super@admin.com / super123<br />
+          <b>Admin Inventory:</b> inventory@admin.com / admin123<br />
           <b>User:</b> user@user.com / user123
         </div>
       </form>

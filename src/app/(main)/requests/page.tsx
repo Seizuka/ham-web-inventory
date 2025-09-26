@@ -1,108 +1,151 @@
 "use client";
-import React, { useState } from "react";
+import { useAuth } from "../../../../contexts/AuthContext";
+import { useEffect, useState } from "react";
 
-// Simulasi Auth
-const mockUser = { role: "superadmin" as "user" | "admin_inventory" | "superadmin" }; // ganti role untuk test
-
-// Dummy request data
-type RequestStatus = "pending" | "accepted" | "rejected";
-type RequestBarang = {
+type RequestItem = {
   id: number;
-  itemName: string;
+  nama_barang: string;
   merk: string;
   jumlah: number;
   label: string;
   lokasi: string;
   requester: string;
-  status: RequestStatus;
+  requester_email: string;
+  status: "Pending" | "Accepted" | "Rejected";
 };
-const initialRequests: RequestBarang[] = [
-  {
-    id: 1,
-    itemName: "Tripod Besar",
-    merk: "Costa",
-    jumlah: 1,
-    label: "IT - KOMNAS HAM",
-    lokasi: "di atas lemari Mas Iyay",
-    requester: "Budi",
-    status: "pending",
-  },
-  {
-    id: 2,
-    itemName: "Adapter mini HDMI to HDMI",
-    merk: "Vention",
-    jumlah: 1,
-    label: "I TI - KH",
-    lokasi: "Laci Bawah AC Nomor 1",
-    requester: "Siti",
-    status: "pending",
-  },
-  {
-    id: 3,
-    itemName: "Webcam",
-    merk: "Logitech",
-    jumlah: 1,
-    label: "-",
-    lokasi: "Laci Bawah AC Nomor 1",
-    requester: "Eka",
-    status: "accepted",
-  },
-  {
-    id: 4,
-    itemName: "Video Adapter",
-    merk: "Vention",
-    jumlah: 1,
-    label: "TI",
-    lokasi: "Laci Bawah AC Nomor 1",
-    requester: "Deni",
-    status: "rejected",
-  },
-];
 
 const ITEMS_PER_PAGE = 5;
 
-export default function RequestBarangPage() {
-  // --- Semua hooks di atas! ---
-  const [requests, setRequests] = useState<RequestBarang[]>(initialRequests);
-  const [page, setPage] = useState<number>(1);
-  const [search, setSearch] = useState<string>("");
+export default function RequestsPage() {
+  const { user, loading } = useAuth();
+  const [data, setData] = useState<RequestItem[]>([]);
+  const [tableLoading, setTableLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
 
-  // FILTER + PAGINATION
-  const filtered = requests.filter(req =>
-    req.itemName.toLowerCase().includes(search.toLowerCase()) ||
-    req.requester.toLowerCase().includes(search.toLowerCase())
+  // Fetch requests
+  const fetchRequests = () => {
+    setTableLoading(true);
+    fetch("/api/requests")
+      .then(res => res.json())
+      .then(json => {
+        setData(Array.isArray(json) ? json : []);
+        setTableLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to fetch requests");
+        setTableLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  // Search + paging
+  const filtered = data.filter(
+    (r) =>
+      r.nama_barang.toLowerCase().includes(search.toLowerCase()) ||
+      r.requester.toLowerCase().includes(search.toLowerCase())
   );
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const pagedRequests = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const paged = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  function handleAccept(id: number) {
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "accepted" } : r));
-    // TODO: Call API accept here
-  }
-  function handleReject(id: number) {
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "rejected" } : r));
-    // TODO: Call API reject here
-  }
+  // --- Action Handlers ---
+  const handlePinjam = async (id: number) => {
+    // implement logic pinjam
+    await fetch(`/api/requests/${id}/pinjam`, { method: "POST" });
+    fetchRequests();
+  };
+
+  const handleCancel = async (id: number) => {
+    if (!confirm("Batalkan request ini?")) return;
+    await fetch(`/api/requests/${id}/cancel`, { method: "POST" });
+    fetchRequests();
+  };
+
+  const handleAccept = async (id: number) => {
+    await fetch(`/api/requests/${id}/accept`, { method: "POST" });
+    fetchRequests();
+  };
+
+  const handleReject = async (id: number) => {
+    if (!confirm("Tolak request ini?")) return;
+    await fetch(`/api/requests/${id}/reject`, { method: "POST" });
+    fetchRequests();
+  };
+
   function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
     setSearch(e.target.value);
     setPage(1);
   }
 
-  const user = mockUser; // ganti ke AuthContext jika sudah ada
-
-  // Hanya role superadmin/admin_inventory yang bisa akses halaman ini
-  if (!user) return <div>Loading...</div>;
-  if (!["superadmin", "admin_inventory"].includes(user.role)) {
-    return <div className="text-center text-lg mt-20">Anda tidak punya akses ke menu ini.</div>;
+  // --- UI Table Action ---
+  function renderAction(r: RequestItem) {
+    // Superadmin: view only
+    if (user?.role === "superadmin") return <span className="text-gray-500">View only</span>;
+    // Inventory Admin: Accept/Reject button jika Pending
+    if (user?.role === "admin_inventory") {
+      if (r.status === "Pending") {
+        return (
+          <div className="flex gap-2">
+            <button
+              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
+              onClick={() => handleAccept(r.id)}
+            >
+              Accept
+            </button>
+            <button
+              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+              onClick={() => handleReject(r.id)}
+            >
+              Reject
+            </button>
+          </div>
+        );
+      }
+      return <span className="text-gray-400">View only</span>;
+    }
+    // User: Pinjam atau Cancel (hanya milik sendiri, dan belum Accepted/Rejected)
+    if (user?.role === "user") {
+      if (r.status === "Pending" && r.requester_email === user.email) {
+        return (
+          <div className="flex gap-2">
+            <button
+              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+              onClick={() => handleCancel(r.id)}
+            >
+              Cancel
+            </button>
+          </div>
+        );
+      }
+      if (r.status === "Pending") {
+        return (
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
+            onClick={() => handlePinjam(r.id)}
+          >
+            Pinjam
+          </button>
+        );
+      }
+      return <span className="text-gray-400">View only</span>;
+    }
+    // Default fallback
+    return <span className="text-gray-400">View only</span>;
   }
 
+  // --- UI ---
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4 text-black">Request Barang</h1>
       <div className="bg-white rounded-lg shadow p-6">
-        {/* SEARCH BAR */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold text-black">Daftar Request Barang</h2>
+          <div>
+            <h2 className="text-lg font-semibold text-black">Daftar Request Barang</h2>
+          </div>
           <div className="flex flex-col items-start w-full md:w-auto">
             <label className="mb-1 font-semibold text-gray-800" htmlFor="search-barang">
               Cari Nama Barang/Peminjam
@@ -126,69 +169,67 @@ export default function RequestBarangPage() {
             </div>
           </div>
         </div>
-        {/* TABLE */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white text-sm">
-            <thead>
-              <tr>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Nama Barang</th>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Merk</th>
-                <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Jumlah</th>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Label</th>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Lokasi</th>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Requester</th>
-                <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Status</th>
-                <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagedRequests.length === 0 ? (
+        {/* Table */}
+        {tableLoading ? (
+          <div className="text-center py-8 text-gray-600">Loading...</div>
+        ) : error ? (
+          <div className="text-center py-8 text-red-500">{error}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white text-sm">
+              <thead>
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-gray-500">Tidak ada data.</td>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Nama Barang</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Merk</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Jumlah</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Label</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Lokasi</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Requester</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Status</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Action</th>
                 </tr>
-              ) : (
-                pagedRequests.map((req) => (
-                  <tr key={req.id} className="border-b last:border-none">
-                    <td className="py-2 px-3 font-medium text-black">{req.itemName}</td>
-                    <td className="py-2 px-3 text-black">{req.merk}</td>
-                    <td className="py-2 px-3 text-center text-black">{req.jumlah}</td>
-                    <td className="py-2 px-3 text-black">{req.label}</td>
-                    <td className="py-2 px-3 text-black">{req.lokasi}</td>
-                    <td className="py-2 px-3 text-black">{req.requester}</td>
-                    <td className="py-2 px-3 text-center">
-                      {req.status === "accepted" && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold text-xs">Accepted</span>}
-                      {req.status === "rejected" && <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-bold text-xs">Rejected</span>}
-                      {req.status === "pending" && <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-bold text-xs">Pending</span>}
-                    </td>
-                    <td className="py-2 px-3 text-center flex gap-2 justify-center">
-                      {user.role === "admin_inventory" && req.status === "pending" ? (
-                        <>
-                          <button
-                            className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                            onClick={() => handleAccept(req.id)}
-                          >Accept</button>
-                          <button
-                            className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                            onClick={() => handleReject(req.id)}
-                          >Reject</button>
-                        </>
-                      ) : user.role === "superadmin" ? (
-                        // superadmin: hanya bisa lihat, tidak ada tombol!
-                        <span className="text-gray-400 text-xs italic">View only</span>
-                      ) : null}
-                    </td>
+              </thead>
+              <tbody>
+                {paged.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-gray-500">Tidak ada data.</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        {/* PAGINATION */}
+                ) : (
+                  paged.map((r) => (
+                    <tr key={r.id} className="border-b last:border-none">
+                      <td className="py-2 px-3">{r.nama_barang}</td>
+                      <td className="py-2 px-3">{r.merk}</td>
+                      <td className="py-2 px-3">{r.jumlah}</td>
+                      <td className="py-2 px-3">{r.label}</td>
+                      <td className="py-2 px-3">{r.lokasi}</td>
+                      <td className="py-2 px-3">{r.requester}</td>
+                      <td className="py-2 px-3">
+                        <span
+                          className={`px-3 py-1 rounded-full font-bold text-xs
+                          ${r.status === "Pending"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : r.status === "Accepted"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                        >
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3">{renderAction(r)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {/* Pagination */}
         <div className="flex justify-end items-center mt-4 gap-2">
           <button
             className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
             disabled={page === 1}
-            onClick={() => setPage(p => Math.max(p - 1, 1))}
+            onClick={() => setPage((p) => Math.max(p - 1, 1))}
           >
             Previous
           </button>
@@ -198,7 +239,7 @@ export default function RequestBarangPage() {
           <button
             className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
             disabled={page === totalPages}
-            onClick={() => setPage(p => Math.min(p + 1, totalPages))}
+            onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
           >
             Next
           </button>
