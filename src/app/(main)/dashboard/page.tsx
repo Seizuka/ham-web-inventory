@@ -1,20 +1,8 @@
 "use client";
 import { useAuth } from "../../../../contexts/AuthContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-// Dummy data (boleh diganti dari API/DB)
-const items = [
-  { name: "Laptop Dell", stock: 10 },
-  { name: "Monitor Samsung", stock: 2 },
-  { name: "Mouse Logitech", stock: 1 },
-  { name: "Kabel HDMI", stock: 0 },
-  { name: "Keyboard Lenovo", stock: 5 },
-  { name: "Headset Sony", stock: 3 },
-  { name: "Flashdisk 16GB", stock: 6 },
-  { name: "Webcam Logitech", stock: 0 },
-  { name: "Proyektor Epson", stock: 7 },
-  { name: "Speaker JBL", stock: 1 },
-];
+type Item = { id: number; name: string; jumlah: number };
 
 function getStatus(stock: number) {
   if (stock >= 5) return { text: `${stock} available`, color: "bg-green-100 text-green-700" };
@@ -26,20 +14,43 @@ const ITEMS_PER_PAGE = 5;
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [data, setData] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
-  // Search & Pagination logic
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    fetch("/api/dashboard")
+      .then(res => {
+        if (!res.ok) throw new Error("API Error");
+        return res.json();
+      })
+      .then(json => {
+        // PASTIKAN SELALU ARRAY!
+        setData(Array.isArray(json) ? json : []);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message || "Unknown error");
+        setLoading(false);
+      });
+  }, []);
+
+  // Pastikan data selalu array sebelum di-filter!
+  const filteredItems = Array.isArray(data)
+    ? data.filter(item =>
+        item.name.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
   const pagedItems = filteredItems.slice(
     (page - 1) * ITEMS_PER_PAGE,
     page * ITEMS_PER_PAGE
   );
 
-  // Reset page ke 1 saat search berubah
   function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
     setSearch(e.target.value);
     setPage(1);
@@ -50,7 +61,7 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold mb-4 text-black">Dashboard</h1>
       <div className="mb-8">
         <p className="text-base text-gray-700">
-          Selamat datang, <b className="capitalize">{user?.name}</b>! Role: <span className="capitalize">{user?.role}</span>
+          Selamat datang, <b className="capitalize">{user?.name}</b>!
         </p>
       </div>
 
@@ -72,7 +83,6 @@ export default function DashboardPage() {
                 className="border-2 border-blue-600 text-black px-10 py-2 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 transition w-64 placeholder-gray-400"
                 autoComplete="off"
               />
-              {/* Icon search */}
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} fill="none" viewBox="0 0 24 24">
                   <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
@@ -83,39 +93,46 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white text-sm">
-            <thead>
-              <tr>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Nama Barang</th>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Total Barang</th>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagedItems.length === 0 ? (
+        {/* Loading & Error */}
+        {loading && <div className="text-center py-8 text-gray-600">Loading...</div>}
+        {error && <div className="text-center py-8 text-red-500">Error: {error}</div>}
+
+        {/* TABEL */}
+        {!loading && !error && (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white text-sm">
+              <thead>
                 <tr>
-                  <td colSpan={3} className="py-8 text-center text-gray-500">Tidak ada data.</td>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Nama Barang</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Total Barang</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Status</th>
                 </tr>
-              ) : (
-                pagedItems.map((item, i) => {
-                  const status = getStatus(item.stock);
-                  return (
-                    <tr key={i} className="border-b last:border-none">
-                      <td className="py-2 px-3 font-medium text-black">{item.name}</td>
-                      <td className="py-2 px-3 text-black">{item.stock}</td>
-                      <td className="py-2 px-3">
-                        <span className={`px-3 py-1 rounded-full font-bold text-xs ${status.color}`}>
-                          {status.text}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {pagedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-8 text-center text-gray-500">Tidak ada data.</td>
+                  </tr>
+                ) : (
+                  pagedItems.map((item, i) => {
+                    const status = getStatus(item.jumlah);
+                    return (
+                      <tr key={item.id} className="border-b last:border-none">
+                        <td className="py-2 px-3 font-medium text-black">{item.name}</td>
+                        <td className="py-2 px-3 text-black">{item.jumlah}</td>
+                        <td className="py-2 px-3">
+                          <span className={`px-3 py-1 rounded-full font-bold text-xs ${status.color}`}>
+                            {status.text}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Pagination */}
         <div className="flex justify-end items-center mt-4 gap-2">

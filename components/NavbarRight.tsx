@@ -24,10 +24,11 @@ export default function NavbarRight() {
 
   if (!user) return null; // hide if not login
 
-  const handleLogout = () => {
-    logout();
-    router.replace("/login");
+  const handleLogout = async () => {
+  await logout();
+  router.replace("/login");
   };
+
 
   return (
     <div className="flex items-center gap-4 relative z-50">

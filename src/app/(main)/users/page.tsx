@@ -1,278 +1,229 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import { useAuth } from "../../../../contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-// --- Dummy User Data & Role ---
-type User = {
-  id: number;
-  email: string;
-  password: string;
-  role: "user" | "admin_inventory" | "superadmin";
-};
+// Type
+type Role = { id: number; name: string };
+type User = { id: number; email: string; role: string; role_id: number };
 
-const initialUsers: User[] = [
-  { id: 1, email: "superadmin@email.com", password: "superpass", role: "superadmin" },
-  { id: 2, email: "admin@email.com", password: "adminpass", role: "admin_inventory" },
-  { id: 3, email: "user1@email.com", password: "userpass1", role: "user" },
-  { id: 4, email: "user2@email.com", password: "userpass2", role: "user" },
-];
+const ITEMS_PER_PAGE = 5;
 
-// --- Simulasi role login ---
-const mockUser = { role: "superadmin" as "superadmin" | "admin_inventory" | "user" };
+export default function UsersPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-const ROLES = [
-  { value: "superadmin", label: "Superadmin" },
-  { value: "admin_inventory", label: "Admin Inventory" },
-  { value: "user", label: "User" },
-];
+  // Proteksi role: hanya superadmin boleh akses
+  useEffect(() => {
+    if (!loading) {
+      if (!user || user.role !== "superadmin") {
+        router.replace("/dashboard");
+      }
+    }
+  }, [user, loading, router]);
 
-const USERS_PER_PAGE = 5;
+  if (loading || !user || user.role !== "superadmin") return null;
 
-export default function UserManagementPage() {
-  // Semua HOOKS wajib di paling atas!
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [search, setSearch] = useState<string>("");
-  const [page, setPage] = useState<number>(1);
-  const [modal, setModal] = useState<{ type: "add" | "edit", data?: User } | null>(null);
+  // State utama
+  const [data, setData] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [tableLoading, setTableLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [form, setForm] = useState({ email: "", password: "", role_id: 0 });
+  const [saving, setSaving] = useState(false);
 
-  // Search & Pagination
-  const filtered = useMemo(
-    () =>
-      users.filter(
-        (u) =>
+  // Fetch users
+  const fetchUsers = () => {
+    setTableLoading(true);
+    fetch("/api/users")
+      .then(res => res.json())
+      .then(json => {
+        setData(Array.isArray(json) ? json : []);
+        setTableLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to fetch users");
+        setTableLoading(false);
+      });
+  };
+
+  // Fetch roles
+  const fetchRoles = () => {
+    fetch("/api/roles")
+      .then(res => res.json())
+      .then(json => setRoles(Array.isArray(json) ? json : []));
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    fetchRoles();
+  }, []);
+
+  // Search filter
+  const filteredData = Array.isArray(data)
+    ? data.filter(
+        u =>
           u.email.toLowerCase().includes(search.toLowerCase()) ||
           u.role.toLowerCase().includes(search.toLowerCase())
-      ),
-    [users, search]
-  );
-  const totalPages = Math.max(1, Math.ceil(filtered.length / USERS_PER_PAGE));
-  const pagedUsers = filtered.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
+      )
+    : [];
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE));
+  const pagedUsers = filteredData.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  // CRUD Handler
-  function handleAdd(newUser: Omit<User, "id">) {
-    setUsers((prev) => [
-      ...prev,
-      { ...newUser, id: Date.now() },
-    ]);
+  function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
+    setSearch(e.target.value);
+    setPage(1);
   }
-  function handleEdit(newUser: User) {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === newUser.id ? newUser : u))
-    );
-  }
-  function handleDelete(id: number) {
-    if (window.confirm("Yakin ingin menghapus user ini?")) {
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+
+  // Modal open/close
+  const openAddModal = () => {
+    setModalMode("add");
+    setForm({ email: "", password: "", role_id: 0 });
+    setModalOpen(true);
+  };
+  const openEditModal = (u: User) => {
+    setModalMode("edit");
+    setSelectedUser(u);
+    setForm({ email: u.email, password: "", role_id: u.role_id });
+    setModalOpen(true);
+  };
+  const closeModal = () => {
+    setModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  // Submit handler
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+
+    const body = {
+      email: form.email,
+      password: form.password,
+      role_id: form.role_id,
+    };
+
+    try {
+      if (modalMode === "add") {
+        await fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } else if (modalMode === "edit" && selectedUser) {
+        await fetch(`/api/users/${selectedUser.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      }
+      fetchUsers();
+      closeModal();
+    } finally {
+      setSaving(false);
     }
   }
 
-  // Handler agar TIDAK error assignability
-  function handleModalSubmit(user: User | Omit<User, "id">) {
-    if ("id" in user) {
-      handleEdit(user as User);
-    } else {
-      handleAdd(user as Omit<User, "id">);
-    }
+  // Delete user
+  async function handleDelete(id: number) {
+    if (!confirm("Yakin ingin menghapus user ini?")) return;
+    await fetch(`/api/users/${id}`, { method: "DELETE" });
+    fetchUsers();
   }
 
-  // Modal Form
-function UserModal({
-  open,
-  onClose,
-  onSubmit,
-  initial,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (user: User | Omit<User, "id">) => void;
-  initial?: User;
-}) {
-  const [form, setForm] = useState<Omit<User, "id">>(
-    initial
-      ? { email: initial.email, password: initial.password, role: initial.role }
-      : { email: "", password: "", role: "user" }
-  );
-
-  // Sync initial value on open
-  React.useEffect(() => {
-    if (initial)
-      setForm({ email: initial.email, password: initial.password, role: initial.role });
-    else setForm({ email: "", password: "", role: "user" });
-  }, [initial, open]);
-
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="bg-white p-6 rounded-xl shadow-md min-w-[350px] max-w-lg w-full">
-        <h2 className="font-bold text-xl mb-4 text-gray-900">{initial ? "Edit" : "Tambah"} User</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (initial) {
-              onSubmit({ ...form, id: initial.id });
-            } else {
-              onSubmit(form);
-            }
-            onClose();
-          }}
-          className="flex flex-col gap-3"
-        >
-          <input
-            required
-            type="email"
-            placeholder="Email"
-            className="border border-gray-300 px-3 py-2 rounded bg-white text-black placeholder-gray-400"
-            value={form.email}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, email: e.target.value }))
-            }
-          />
-          <input
-            required
-            type="password"
-            placeholder="Password"
-            className="border border-gray-300 px-3 py-2 rounded bg-white text-black placeholder-gray-400"
-            value={form.password}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, password: e.target.value }))
-            }
-          />
-          <div>
-            <label className="block font-medium mb-1 text-gray-800">Role</label>
-            <select
-              required
-              className="border border-gray-300 px-3 py-2 rounded w-full bg-white text-black"
-              value={form.role}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  role: e.target.value as User["role"],
-                }))
-              }
-            >
-              {ROLES.map((role) => (
-                <option key={role.value} value={role.value}>
-                  {role.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex gap-2 justify-end mt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="bg-gray-100 text-gray-800 rounded px-4 py-2 hover:bg-gray-200"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700"
-            >
-              {initial ? "Update" : "Tambah"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-
-  const user = mockUser; // Ganti dengan useAuth().user jika sudah ada auth context
-
-  // Hanya superadmin yang bisa akses halaman ini
-  if (!user || user.role !== "superadmin") {
-    return (
-      <div className="text-center text-lg mt-20">
-        Anda tidak punya akses ke menu ini.
-      </div>
-    );
-  }
-
-  // --- Render table & modal ---
+  // ----- UI -----
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4 text-black">Manajemen User</h1>
+      <h1 className="text-2xl font-bold mb-4 text-black">User Management</h1>
       <div className="bg-white rounded-lg shadow p-6">
-        {/* SEARCH BAR */}
+        {/* SEARCH BAR + Tambah User */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold text-black">Daftar User</h2>
           <div className="flex flex-col items-start w-full md:w-auto">
             <label className="mb-1 font-semibold text-gray-800" htmlFor="search-user">
-              Cari Email/Role
+              Daftar User
             </label>
             <div className="relative w-full">
               <input
                 id="search-user"
                 type="text"
-                placeholder="Cari email atau role..."
+                placeholder="Cari email / role..."
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
+                onChange={handleSearch}
                 className="border-2 border-blue-600 text-black px-10 py-2 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 transition w-64 placeholder-gray-400"
                 autoComplete="off"
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} fill="none" viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="m16.5 16.5 4 4" />
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
+                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="m16.5 16.5 4 4"/>
                 </svg>
               </span>
             </div>
           </div>
           <button
-            className="bg-blue-600 text-white rounded-xl px-4 py-2 shadow"
-            onClick={() => setModal({ type: "add" })}
+            className="bg-blue-600 text-white font-semibold px-6 py-2 rounded hover:bg-blue-700 transition"
+            onClick={openAddModal}
           >
-            + Tambah User
+            Tambah User
           </button>
         </div>
+
         {/* TABLE */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white text-sm">
-            <thead>
-              <tr>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Email</th>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Role</th>
-                <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Password</th>
-                <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagedUsers.length === 0 ? (
+        {tableLoading ? (
+          <div className="text-center py-8 text-gray-600">Loading...</div>
+        ) : error ? (
+          <div className="text-center py-8 text-red-500">{error}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white text-sm">
+              <thead>
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-500">
-                    Tidak ada data.
-                  </td>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Email</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Role</th>
+                  <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b w-40">Aksi</th>
                 </tr>
-              ) : (
-                pagedUsers.map((u) => (
-                  <tr key={u.id} className="border-b last:border-none">
-                    <td className="py-2 px-3 text-black">{u.email}</td>
-                    <td className="py-2 px-3 text-black capitalize">{u.role.replace("_", " ")}</td>
-                    <td className="py-2 px-3 text-black">{u.password}</td>
-                    <td className="py-2 px-3 text-center flex gap-2 justify-center">
-                      <button
-                        className="bg-yellow-400 text-white px-3 py-1 rounded hover:bg-yellow-500 transition"
-                        onClick={() => setModal({ type: "edit", data: u })}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
-                        onClick={() => handleDelete(u.id)}
-                      >
-                        Hapus
-                      </button>
-                    </td>
+              </thead>
+              <tbody>
+                {pagedUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-8 text-center text-gray-500">Tidak ada data.</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  pagedUsers.map((u) => (
+                    <tr key={u.id} className="border-b last:border-none">
+                      <td className="py-2 px-3 text-black">{u.email}</td>
+                      <td className="py-2 px-3">
+                        <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-bold text-xs">
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3">
+                        <button
+                          className="bg-yellow-400 hover:bg-yellow-500 text-black px-3 py-1 rounded font-semibold mr-2"
+                          onClick={() => openEditModal(u)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded font-semibold"
+                          onClick={() => handleDelete(u.id)}
+                        >
+                          Hapus
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* PAGINATION */}
         <div className="flex justify-end items-center mt-4 gap-2">
           <button
@@ -294,14 +245,88 @@ function UserModal({
           </button>
         </div>
       </div>
-      {/* MODAL */}
-      {modal && (
-        <UserModal
-          open={!!modal}
-          onClose={() => setModal(null)}
-          onSubmit={handleModalSubmit}
-          initial={modal.type === "edit" ? modal.data : undefined}
-        />
+
+      {/* MODAL TAMBAH/EDIT */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center"
+          onClick={closeModal}
+        >
+          <div
+            className="relative bg-white p-8 rounded-xl shadow-lg w-full max-w-md z-60 border border-gray-200"
+            style={{
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold mb-6">{modalMode === "add" ? "Tambah User" : "Edit User"}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block font-semibold mb-1">Email:</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
+                  className={`w-full border rounded px-3 py-2 ${modalMode === "edit" ? "bg-gray-100 text-gray-500" : ""}`}
+                  required
+                  disabled={modalMode === "edit"}
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">
+                  Password:
+                  {modalMode === "edit" && (
+                    <span className="text-gray-400 ml-2">(Kosongkan jika tidak ingin diganti)</span>
+                  )}
+                </label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  className="w-full border rounded px-3 py-2"
+                  placeholder={modalMode === "edit" ? "Biarkan kosong jika tidak ingin diganti" : ""}
+                  required={modalMode === "add"}
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Role:</label>
+                <select
+                  value={form.role_id}
+                  onChange={e => setForm({ ...form, role_id: Number(e.target.value) })}
+                  className={`w-full border rounded px-3 py-2 ${modalMode === "edit" ? "bg-gray-100 text-gray-500" : ""}`}
+                  required
+                  disabled={modalMode === "edit"}
+                >
+                  <option value={0}>Pilih Role</option>
+                  {roles.map(role => (
+                    <option value={role.id} key={role.id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 justify-end mt-6">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="bg-gray-200 text-black px-4 py-2 rounded"
+                  disabled={saving}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-4 py-2 rounded"
+                  disabled={saving}
+                >
+                  {modalMode === "add" ? "Tambah" : "Update"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
