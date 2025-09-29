@@ -14,32 +14,46 @@ export function verifyToken(token: string) {
     return null;
   }
 }
+
 export async function getUserByEmail(email: string) {
   const res = await query(
-    // Join ke tabel roles, dan sesuaikan kolom!
-    `SELECT users.id, users.email, users.password_hash, roles.name AS role
+    `SELECT users.id, users.email, users.password_hash, users.avatar_url, roles.name AS role
      FROM users
      JOIN roles ON users.role_id = roles.id
      WHERE users.email = $1
      LIMIT 1`,
     [email]
   );
-  return res.rows[0];
+  if (!res.rows[0]) return null;
+  const u = res.rows[0];
+  return {
+    id: u.id,
+    email: u.email,
+    password_hash: u.password_hash,
+    role: u.role,
+    avatarUrl: u.avatar_url || null,
+  };
 }
+
 export async function getUserById(id: string) {
   const res = await query(
-    `SELECT users.id, users.email, roles.name AS role
+    `SELECT users.id, users.email, users.avatar_url, roles.name AS role
      FROM users
      JOIN roles ON users.role_id = roles.id
      WHERE users.id = $1
      LIMIT 1`,
     [id]
   );
-  return res.rows[0];
+  if (!res.rows[0]) return null;
+  const u = res.rows[0];
+  return {
+    id: u.id,
+    email: u.email,
+    role: u.role,
+    avatarUrl: u.avatar_url || null,
+  };
 }
 
-
-// SSR: Ambil user dari JWT token di cookie (dipakai di page server)
 export async function getUserFromCookie() {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;

@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { getUserByEmail, signToken } from "../../../../lib/auth";
+import bcrypt from "bcryptjs"; // Tambahkan ini!
 
 export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
     const user = await getUserByEmail(email);
 
-    // Validasi login, pakai kolom password_hash!
-    if (!user || user.password_hash !== password) {
+    // Validasi login, pakai bcrypt.compare
+    if (!user) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
@@ -31,4 +36,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

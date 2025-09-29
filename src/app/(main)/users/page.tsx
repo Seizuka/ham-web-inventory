@@ -13,18 +13,7 @@ export default function UsersPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  // Proteksi role: hanya superadmin boleh akses
-  useEffect(() => {
-    if (!loading) {
-      if (!user || user.role !== "superadmin") {
-        router.replace("/dashboard");
-      }
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user || user.role !== "superadmin") return null;
-
-  // State utama
+  // --- HOOKS WAJIB DI ATAS SEMUA ---
   const [data, setData] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [tableLoading, setTableLoading] = useState(true);
@@ -36,6 +25,17 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [form, setForm] = useState({ email: "", password: "", role_id: 0 });
   const [saving, setSaving] = useState(false);
+
+  // Proteksi role: hanya superadmin boleh akses
+  useEffect(() => {
+    if (!loading) {
+      if (!user || user.role !== "superadmin") {
+        router.replace("/dashboard");
+      }
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user || user.role !== "superadmin") return null;
 
   // Fetch users
   const fetchUsers = () => {
@@ -249,33 +249,31 @@ export default function UsersPage() {
       {/* MODAL TAMBAH/EDIT */}
       {modalOpen && (
         <div
-          className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
           onClick={closeModal}
         >
           <div
-            className="relative bg-white p-8 rounded-xl shadow-lg w-full max-w-md z-60 border border-gray-200"
-            style={{
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)"
-            }}
+            className="relative bg-white p-8 rounded-xl shadow-xl w-full max-w-md border-2 border-blue-600"
             onClick={e => e.stopPropagation()}
+            style={{
+              boxShadow: "0 8px 32px rgba(0,0,0,0.2)"
+            }}
           >
-            <h2 className="text-xl font-bold mb-6">{modalMode === "add" ? "Tambah User" : "Edit User"}</h2>
+            <h2 className="text-2xl font-bold mb-6 text-blue-800">{modalMode === "add" ? "Tambah User" : "Edit User"}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block font-semibold mb-1">Email:</label>
+                <label className="block font-semibold mb-1 text-gray-800">Email:</label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
-                  className={`w-full border rounded px-3 py-2 ${modalMode === "edit" ? "bg-gray-100 text-gray-500" : ""}`}
+                  className={`w-full border-2 border-gray-400 rounded px-3 py-2 text-black font-medium focus:border-blue-700 focus:ring-2 focus:ring-blue-200 transition ${modalMode === "edit" ? "bg-gray-100 text-gray-500" : ""}`}
                   required
                   disabled={modalMode === "edit"}
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">
+                <label className="block font-semibold mb-1 text-gray-800">
                   Password:
                   {modalMode === "edit" && (
                     <span className="text-gray-400 ml-2">(Kosongkan jika tidak ingin diganti)</span>
@@ -285,17 +283,17 @@ export default function UsersPage() {
                   type="password"
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border-2 border-gray-400 rounded px-3 py-2 text-black font-medium focus:border-blue-700 focus:ring-2 focus:ring-blue-200 transition"
                   placeholder={modalMode === "edit" ? "Biarkan kosong jika tidak ingin diganti" : ""}
                   required={modalMode === "add"}
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Role:</label>
+                <label className="block font-semibold mb-1 text-gray-800">Role:</label>
                 <select
                   value={form.role_id}
                   onChange={e => setForm({ ...form, role_id: Number(e.target.value) })}
-                  className={`w-full border rounded px-3 py-2 ${modalMode === "edit" ? "bg-gray-100 text-gray-500" : ""}`}
+                  className={`w-full border-2 border-gray-400 rounded px-3 py-2 text-black font-medium focus:border-blue-700 focus:ring-2 focus:ring-blue-200 transition ${modalMode === "edit" ? "bg-gray-100 text-gray-500" : ""}`}
                   required
                   disabled={modalMode === "edit"}
                 >
@@ -311,14 +309,14 @@ export default function UsersPage() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="bg-gray-200 text-black px-4 py-2 rounded"
+                  className="bg-gray-200 text-black px-4 py-2 rounded font-semibold hover:bg-gray-300"
                   disabled={saving}
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-4 py-2 rounded"
+                  className="bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700"
                   disabled={saving}
                 >
                   {modalMode === "add" ? "Tambah" : "Update"}
