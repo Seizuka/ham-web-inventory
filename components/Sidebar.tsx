@@ -21,19 +21,20 @@ export default function Sidebar() {
       { name: "Request Barang", href: "/requests" },
       //{ name: "Role", href: "/role" },
       { name: "User", href: "/users" },
-      { name: "Peminjaman", href: "/borrow" },
+      { name: "Peminjaman", href: "/loans" },
     ];
   } else if (user.role === "admin_inventory") {
     menu = [
       { name: "Dashboard", href: "/dashboard" },
       { name: "List Barang", href: "/items" },
       { name: "Request Barang", href: "/requests" },
-      { name: "Peminjaman", href: "/borrow" },
+      { name: "Peminjaman", href: "/loans" },
     ];
   } else if (user.role === "user") {
     menu = [
       { name: "Dashboard", href: "/dashboard" },
       { name: "Request Barang", href: "/requests" },
+      { name: "Peminjaman", href: "/loans" },
     ];
   }
 

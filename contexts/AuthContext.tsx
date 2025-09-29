@@ -7,6 +7,7 @@ type AuthContextType = {
   loading: boolean;
   loginWithEmail: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,20 +18,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Hydrate user from API (cookie-based)
   useEffect(() => {
-    const fetchMe = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/me", { credentials: "include" });
-        if (!res.ok) throw new Error("No login");
-        const data = await res.json();
-        setUser(data.user);
-      } catch {
-        setUser(null);
-      }
-      setLoading(false);
-    };
-    fetchMe();
+    refreshUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Fungsi untuk refresh user dari /api/me (misal setelah update avatar, password, dll)
+  const refreshUser = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/me", { credentials: "include" });
+      if (!res.ok) throw new Error("No login");
+      const data = await res.json();
+      setUser(data.user);
+    } catch {
+      setUser(null);
+    }
+    setLoading(false);
+  };
 
   const loginWithEmail = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -63,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithEmail, logout }}>
+    <AuthContext.Provider value={{ user, loading, loginWithEmail, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

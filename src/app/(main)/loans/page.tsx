@@ -1,116 +1,74 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../../../../contexts/AuthContext";
+import Toast from "../../../../components/Toast";
 
-// --- Type & Dummy Data ---
-type BorrowStatus = "borrowed" | "returned";
-type BorrowItem = {
+type LoanStatus = "borrowed" | "returned";
+type Loan = {
   id: number;
-  itemId: number;
-  namaBarang: string;
-  peminjam: string;
-  tanggalPinjam: string; // YYYY-MM-DD
-  tanggalKembali?: string;
-  status: BorrowStatus;
+  item_id: number;
+  item_name: string;
+  peminjam_email: string;
+  jumlah: number;
+  tanggal_pinjam: string;
+  tanggal_kembali?: string | null;
+  status: LoanStatus;
 };
-
-const initialBorrows: BorrowItem[] = [
-  {
-    id: 1,
-    itemId: 2,
-    namaBarang: "Tripod Kecil",
-    peminjam: "budi@email.com",
-    tanggalPinjam: "2025-09-23",
-    status: "borrowed",
-  },
-  {
-    id: 2,
-    itemId: 6,
-    namaBarang: "Webcam",
-    peminjam: "siti@email.com",
-    tanggalPinjam: "2025-09-22",
-    status: "borrowed",
-  },
-  {
-    id: 3,
-    itemId: 1,
-    namaBarang: "Tripod Besar",
-    peminjam: "agus@email.com",
-    tanggalPinjam: "2025-09-18",
-    tanggalKembali: "2025-09-21",
-    status: "returned",
-  },
-];
-
-// Data barang untuk stok
-const items = [
-  { id: 1, name: "Tripod Besar", jumlah: 2 },
-  { id: 2, name: "Tripod Kecil", jumlah: 2 },
-  { id: 6, name: "Webcam", jumlah: 1 },
-];
 
 const ITEMS_PER_PAGE = 5;
 
-// --- SIMULASI ROLE (Ganti ke role user/admin_inventory/superadmin untuk testing) ---
-const mockUser = { role: "admin_inventory" as "user" | "admin_inventory" | "superadmin" }; // <-- Ganti sesuai role yang mau di-test
-
-// --- COMPONENT ---
-export default function BorrowListPage() {
-  // ⬇️ Semua hooks di paling atas!
-  // (JANGAN TARUH return sebelum bagian ini!)
-  const [borrows, setBorrows] = useState<BorrowItem[]>(initialBorrows);
-  const [itemList, setItemList] = useState(items);
+export default function LoansPage() {
+  const { user } = useAuth();
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: "success"|"error" }>({ show: false, message: "", type: "success" });
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
-  // FILTER & PAGINATION
-  const filteredBorrows = borrows.filter(b =>
-    b.namaBarang.toLowerCase().includes(search.toLowerCase()) ||
-    b.peminjam.toLowerCase().includes(search.toLowerCase())
-  );
-  const totalPages = Math.max(1, Math.ceil(filteredBorrows.length / ITEMS_PER_PAGE));
-  const pagedBorrows = filteredBorrows.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE
-  );
+  function fetchLoans() {
+    setLoading(true);
+    fetch("/api/loans")
+      .then(async r => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then(data => { setLoans(data); setLoading(false); })
+      .catch(() => { setLoans([]); setLoading(false); });
+  }
 
-  function handleReturn(borrowId: number) {
-    const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
-    setBorrows(prev =>
-      prev.map(b =>
-        b.id === borrowId
-          ? { ...b, status: "returned", tanggalKembali: today }
-          : b
-      )
-    );
-    const borrow = borrows.find(b => b.id === borrowId);
-    if (borrow) {
-      setItemList(prev =>
-        prev.map(item =>
-          item.id === borrow.itemId
-            ? { ...item, jumlah: item.jumlah + 1 }
-            : item
-        )
-      );
+  useEffect(() => { if (user) fetchLoans(); }, [user]);
+  useEffect(() => { if (toast.show) { const t = setTimeout(() => setToast(v=>({...v,show:false})), 2000); return ()=>clearTimeout(t); } }, [toast.show]);
+
+  // Filtering & pagination
+  const filtered = loans.filter(l =>
+    l.item_name?.toLowerCase().includes(search.toLowerCase()) ||
+    l.peminjam_email?.toLowerCase().includes(search.toLowerCase())
+  );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const pagedLoans = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  async function handleReturn(loanId: number) {
+    try {
+      const res = await fetch("/api/loans", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loan_id: loanId }),
+      });
+      if (!res.ok) {
+        setToast({ show: true, message: "Gagal mengembalikan barang.", type: "error" });
+        return;
+      }
+      setToast({ show: true, message: "Barang berhasil dikembalikan!", type: "success" });
+      fetchLoans();
+    } catch {
+      setToast({ show: true, message: "Gagal mengembalikan barang.", type: "error" });
     }
-    // TODO: update dashboard/statistic/API jika perlu
   }
-
-  function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
-    setSearch(e.target.value);
-    setPage(1);
-  }
-
-  // ⬇️ Setelah semua hooks, baru boleh conditional rendering!
-  const user = mockUser; // Ganti dengan context dari Auth kalau sudah ada
 
   if (!user) return <div>Loading...</div>;
-  if (!["superadmin", "admin_inventory"].includes(user.role)) {
-    return <div className="text-center text-lg mt-20">Anda tidak punya akses ke menu ini.</div>;
-  }
-
-  // --- Render Table ---
   return (
     <div className="p-8">
+      <Toast {...toast} onClose={()=>setToast(v=>({...v,show:false}))}/>
       <h1 className="text-2xl font-bold mb-4 text-black">Daftar Peminjaman Barang</h1>
       <div className="bg-white rounded-lg shadow p-6">
         {/* SEARCH BAR */}
@@ -126,7 +84,7 @@ export default function BorrowListPage() {
                 type="text"
                 placeholder="Cari nama barang/peminjam..."
                 value={search}
-                onChange={handleSearch}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
                 className="border-2 border-blue-600 text-black px-10 py-2 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 transition w-64 placeholder-gray-400"
                 autoComplete="off"
               />
@@ -146,6 +104,7 @@ export default function BorrowListPage() {
               <tr>
                 <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Nama Barang</th>
                 <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Peminjam</th>
+                <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Jumlah</th>
                 <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Tanggal Pinjam</th>
                 <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Tanggal Kembali</th>
                 <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Status</th>
@@ -153,23 +112,26 @@ export default function BorrowListPage() {
               </tr>
             </thead>
             <tbody>
-              {pagedBorrows.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500">Tidak ada data peminjaman.</td>
-                </tr>
+              {loading ? (
+                <tr><td colSpan={7} className="py-8 text-center text-black">Loading...</td></tr>
+              ) : pagedLoans.length === 0 ? (
+                <tr><td colSpan={7} className="py-8 text-center text-gray-500">Tidak ada data peminjaman.</td></tr>
               ) : (
-                pagedBorrows.map(borrow => (
-                  <tr key={borrow.id} className="border-b last:border-none">
-                    <td className="py-2 px-3 text-black font-medium">{borrow.namaBarang}</td>
-                    <td className="py-2 px-3 text-black">{borrow.peminjam}</td>
-                    <td className="py-2 px-3 text-center text-black">{borrow.tanggalPinjam}</td>
+                pagedLoans.map(loan => (
+                  <tr key={loan.id} className="border-b last:border-none">
+                    <td className="py-2 px-3 text-black font-medium">{loan.item_name}</td>
+                    <td className="py-2 px-3 text-black">{loan.peminjam_email}</td>
+                    <td className="py-2 px-3 text-center text-black">{loan.jumlah}</td>
                     <td className="py-2 px-3 text-center text-black">
-                      {borrow.status === "returned"
-                        ? borrow.tanggalKembali
+                      {loan.tanggal_pinjam ? loan.tanggal_pinjam.slice(0, 10) : "-"}
+                    </td>
+                    <td className="py-2 px-3 text-center text-black">
+                      {(loan.status === "returned" && loan.tanggal_kembali)
+                        ? loan.tanggal_kembali.slice(0, 10)
                         : ""}
                     </td>
                     <td className="py-2 px-3 text-center">
-                      {borrow.status === "returned" ? (
+                      {loan.status === "returned" ? (
                         <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold text-xs">
                           Sudah Kembali
                         </span>
@@ -180,15 +142,17 @@ export default function BorrowListPage() {
                       )}
                     </td>
                     <td className="py-2 px-3 text-center">
-                      {borrow.status === "borrowed" ? (
+                      {user.role === "user" && loan.status === "borrowed" && loan.peminjam_email === user.email ? (
                         <button
                           className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
-                          onClick={() => handleReturn(borrow.id)}
+                          onClick={() => handleReturn(loan.id)}
                         >
                           Kembalikan
                         </button>
                       ) : (
-                        <span className="text-gray-400 text-xs italic">Selesai</span>
+                        <span className="text-gray-400 text-xs italic">
+                          {loan.status === "borrowed" ? "-" : "Selesai"}
+                        </span>
                       )}
                     </td>
                   </tr>

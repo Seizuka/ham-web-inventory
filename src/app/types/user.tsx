@@ -2,10 +2,9 @@ import type { Role as _Role } from "../../../config/roles";
 
 export type User = {
   id: string;
-  name: string;
   email: string;
-  role: _Role;
-  avatarUrl?: string;
+  role: _Role | string; // pakai string jika role string
+  avatarUrl?: string | null;
 };
 
-export type Role = _Role; // <--- EXPORT Role JUGA!
+export type Role = _Role;
