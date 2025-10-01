@@ -10,10 +10,10 @@ type User = { id: number; email: string; role: string; role_id: number };
 const ITEMS_PER_PAGE = 5;
 
 export default function UsersPage() {
+  // HOOKS WAJIB DI ATAS, JANGAN ADA RETURN SEBELUMNYA
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  // --- HOOKS WAJIB DI ATAS SEMUA ---
   const [data, setData] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [tableLoading, setTableLoading] = useState(true);
@@ -26,18 +26,26 @@ export default function UsersPage() {
   const [form, setForm] = useState({ email: "", password: "", role_id: 0 });
   const [saving, setSaving] = useState(false);
 
-  // Proteksi role: hanya superadmin boleh akses
+  // Redirect: pastikan semua hook dipanggil sebelum redirect
   useEffect(() => {
     if (!loading) {
-      if (!user || user.role !== "superadmin") {
+      if (!user) {
+        router.replace("/login");
+      } else if (user.role !== "superadmin") {
         router.replace("/dashboard");
       }
     }
   }, [user, loading, router]);
 
-  if (loading || !user || user.role !== "superadmin") return null;
+  // Fetch users dan roles hanya jika sudah superadmin
+  useEffect(() => {
+    if (!loading && user && user.role === "superadmin") {
+      fetchUsers();
+      fetchRoles();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading]);
 
-  // Fetch users
   const fetchUsers = () => {
     setTableLoading(true);
     fetch("/api/users")
@@ -52,17 +60,11 @@ export default function UsersPage() {
       });
   };
 
-  // Fetch roles
   const fetchRoles = () => {
     fetch("/api/roles")
       .then(res => res.json())
       .then(json => setRoles(Array.isArray(json) ? json : []));
   };
-
-  useEffect(() => {
-    fetchUsers();
-    fetchRoles();
-  }, []);
 
   // Search filter
   const filteredData = Array.isArray(data)
@@ -134,6 +136,20 @@ export default function UsersPage() {
     if (!confirm("Yakin ingin menghapus user ini?")) return;
     await fetch(`/api/users/${id}`, { method: "DELETE" });
     fetchUsers();
+  }
+
+  // Jangan pernah return sebelum semua hook dipanggil!
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <span className="text-gray-600 text-lg">Loading...</span>
+      </div>
+    );
+  }
+
+  if (!user || user.role !== "superadmin") {
+    // Render kosong agar urutan hooks tetap, redirect dilakukan oleh useEffect di atas
+    return <></>;
   }
 
   // ----- UI -----
@@ -267,7 +283,7 @@ export default function UsersPage() {
                   type="email"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
-                  className={`w-full border-2 border-gray-400 rounded px-3 py-2 text-black font-medium focus:border-blue-700 focus:ring-2 focus:ring-blue-200 transition ${modalMode === "edit" ? "bg-gray-100 text-gray-500" : ""}`}
+                  className="w-full border-2 border-gray-400 rounded px-3 py-2 text-black font-medium focus:border-blue-700 focus:ring-2 focus:ring-blue-200 transition"
                   required
                   disabled={modalMode === "edit"}
                 />
@@ -293,7 +309,7 @@ export default function UsersPage() {
                 <select
                   value={form.role_id}
                   onChange={e => setForm({ ...form, role_id: Number(e.target.value) })}
-                  className={`w-full border-2 border-gray-400 rounded px-3 py-2 text-black font-medium focus:border-blue-700 focus:ring-2 focus:ring-blue-200 transition ${modalMode === "edit" ? "bg-gray-100 text-gray-500" : ""}`}
+                  className="w-full border-2 border-gray-400 rounded px-3 py-2 text-black font-medium focus:border-blue-700 focus:ring-2 focus:ring-blue-200 transition"
                   required
                   disabled={modalMode === "edit"}
                 >
