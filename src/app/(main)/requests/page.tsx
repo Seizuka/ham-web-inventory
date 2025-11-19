@@ -132,10 +132,10 @@ export default function RequestsPage() {
   return (
     <div className="p-8">
       <Toast {...toast} onClose={()=>setToast(v=>({...v,show:false}))}/>
-      <h1 className="text-2xl font-bold mb-4 text-black">Request Barang</h1>
+      <h1 className="text-2xl font-bold mb-4 text-black">Peminjaman Barang</h1>
       <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="font-semibold text-lg text-black">Daftar Request Barang</h2>
+          <h2 className="font-semibold text-lg text-black">Daftar Peminjaman Barang</h2>
           <input type="text" placeholder="Cari nama barang/peminjam" value={search}
             onChange={e=>setSearch(e.target.value)}
             className="border-2 border-blue-600 px-4 py-2 rounded-lg text-black placeholder-gray-400"/>
@@ -149,10 +149,10 @@ export default function RequestsPage() {
                 <th className="py-2 px-3 text-center border-b border-gray-300 text-black">Jumlah</th>
                 <th className="py-2 px-3 text-left border-b border-gray-300 text-black">Lokasi</th>
                 {user.role === "admin_inventory" && (
-                  <th className="py-2 px-3 text-left border-b border-gray-300 text-black">Requester</th>
+                  <th className="py-2 px-3 text-left border-b border-gray-300 text-black">Peminjam</th>
                 )}
                 <th className="py-2 px-3 text-center border-b border-gray-300 text-black">Status</th>
-                <th className="py-2 px-3 text-center border-b border-gray-300 text-black">Action</th>
+                <th className="py-2 px-3 text-center border-b border-gray-300 text-black">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -173,9 +173,9 @@ export default function RequestsPage() {
                     </td>
                     <td className="py-2 px-3 text-center">
                       <button className="bg-green-600 text-white rounded px-3 py-1 mr-2"
-                        onClick={()=>handleAdminAction(req.id, "accept")}>Accept</button>
+                        onClick={()=>handleAdminAction(req.id, "accept")}>Terima</button>
                       <button className="bg-red-600 text-white rounded px-3 py-1"
-                        onClick={()=>handleAdminAction(req.id, "reject")}>Reject</button>
+                        onClick={()=>handleAdminAction(req.id, "reject")}>Tolak</button>
                     </td>
                   </tr>
                 ))
@@ -198,7 +198,7 @@ export default function RequestsPage() {
                       </td>
                       <td className="py-2 px-3 text-center">
                         {user.role === "superadmin" ? (
-                          <span className="text-gray-400 text-xs italic">View Only</span>
+                          <span className="text-gray-400 text-xs italic">Hanya Lihat</span>
                         ) : item.my_request ? (
                           <button
                             className="bg-red-600 text-white rounded px-3 py-1"
@@ -230,15 +230,15 @@ export default function RequestsPage() {
             className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
             disabled={page === 1}
             onClick={() => setPage((p) => Math.max(p - 1, 1))}
-          >Previous</button>
+          >Sebelumnya</button>
           <span className="mx-2 text-gray-700 select-none">
-            Page <b>{page}</b> of <b>{totalPages}</b>
+            Halaman <b>{page}</b> dari <b>{totalPages}</b>
           </span>
           <button
             className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
             disabled={page === totalPages}
             onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-          >Next</button>
+          >Selanjutnya</button>
         </div>
         {err && <div className="text-red-500 mt-4">{err}</div>}
       </div>

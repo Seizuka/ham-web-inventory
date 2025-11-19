@@ -155,7 +155,7 @@ export default function UsersPage() {
   // ----- UI -----
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4 text-black">User Management</h1>
+      <h1 className="text-2xl font-bold mb-4 text-black">Manajemen User</h1>
       <div className="bg-white rounded-lg shadow p-6">
         {/* SEARCH BAR + Tambah User */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
@@ -223,7 +223,7 @@ export default function UsersPage() {
                           className="bg-yellow-400 hover:bg-yellow-500 text-black px-3 py-1 rounded font-semibold mr-2"
                           onClick={() => openEditModal(u)}
                         >
-                          Edit
+                          Ubah
                         </button>
                         <button
                           className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded font-semibold"

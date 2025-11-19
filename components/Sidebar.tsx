@@ -17,24 +17,24 @@ export default function Sidebar() {
   if (user.role === "superadmin") {
     menu = [
       { name: "Dashboard", href: "/dashboard" },
-      { name: "List Barang", href: "/items" },
-      { name: "Request Barang", href: "/requests" },
+      { name: "Daftar Barang", href: "/items" },
+      { name: "Daftar Peminjaman Barang", href: "/requests" },
       //{ name: "Role", href: "/role" },
       { name: "User", href: "/users" },
-      { name: "Peminjaman", href: "/loans" },
+      { name: "Data Peminjaman", href: "/loans" },
     ];
   } else if (user.role === "admin_inventory") {
     menu = [
       { name: "Dashboard", href: "/dashboard" },
-      { name: "List Barang", href: "/items" },
-      { name: "Request Barang", href: "/requests" },
-      { name: "Peminjaman", href: "/loans" },
+      { name: "Daftar Barang", href: "/items" },
+      { name: "Daftar Peminjaman Barang", href: "/requests" },
+      { name: "Data Peminjaman", href: "/loans" },
     ];
   } else if (user.role === "user") {
     menu = [
       { name: "Dashboard", href: "/dashboard" },
-      { name: "Request Barang", href: "/requests" },
-      { name: "Peminjaman", href: "/loans" },
+      { name: "Daftar Peminjaman Barang", href: "/requests" },
+      { name: "Data Peminjaman", href: "/loans" },
     ];
   }
 

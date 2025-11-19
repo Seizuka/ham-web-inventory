@@ -69,7 +69,7 @@ export default function LoansPage() {
   return (
     <div className="p-8">
       <Toast {...toast} onClose={()=>setToast(v=>({...v,show:false}))}/>
-      <h1 className="text-2xl font-bold mb-4 text-black">Daftar Peminjaman Barang</h1>
+      <h1 className="text-2xl font-bold mb-4 text-black">Data Peminjaman Barang</h1>
       <div className="bg-white rounded-lg shadow p-6">
         {/* SEARCH BAR */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
@@ -108,7 +108,7 @@ export default function LoansPage() {
                 <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Tanggal Pinjam</th>
                 <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Tanggal Kembali</th>
                 <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Status</th>
-                <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Action</th>
+                <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -168,17 +168,17 @@ export default function LoansPage() {
             disabled={page === 1}
             onClick={() => setPage(p => Math.max(p - 1, 1))}
           >
-            Previous
+            Sebelumnya
           </button>
           <span className="mx-2 text-gray-700 select-none">
-            Page <b>{page}</b> of <b>{totalPages}</b>
+            Halaman <b>{page}</b> dari <b>{totalPages}</b>
           </span>
           <button
             className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
             disabled={page === totalPages}
             onClick={() => setPage(p => Math.min(p + 1, totalPages))}
           >
-            Next
+            Selanjutnya
           </button>
         </div>
       </div>
