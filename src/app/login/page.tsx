@@ -70,12 +70,12 @@ export default function LoginPage() {
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
         >
-          Login
+          Masuk
         </button>
         <div className="mt-4 text-xs text-gray-500">
-          <b>Super Admin:</b> super@admin.com / super123<br />
+          {/* <b>Super Admin:</b> super@admin.com / super123<br />
           <b>Admin Inventory:</b> inventory@admin.com / admin123<br />
-          <b>User:</b> user@user.com / user123
+          <b>User:</b> user@user.com / user123 */}
         </div>
       </form>
     </div>

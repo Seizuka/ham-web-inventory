@@ -291,7 +291,7 @@ export default function ItemsPage() {
                 <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Jumlah Unit</th>
                 <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Label</th>
                 <th className="py-2 px-3 text-left text-gray-700 font-semibold border-b">Lokasi</th>
-                <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Action</th>
+                <th className="py-2 px-3 text-center text-gray-700 font-semibold border-b">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -312,11 +312,11 @@ export default function ItemsPage() {
                         <>
                           <button className="bg-yellow-400 text-white px-3 py-1 rounded hover:bg-yellow-500 transition"
                             onClick={() => setModal({ type: "edit", data: item })}>Edit</button>
-                          <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
-                            onClick={() => handleDelete(item.id)}>Hapus</button>
+                          {/* <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
+                            onClick={() => handleDelete(item.id)}>Hapus</button> */}
                         </>
                       ) : (
-                        <span className="text-gray-400 text-xs italic">View Only</span>
+                        <span className="text-gray-400 text-xs italic">Hanya Lihat</span>
                       )}
                     </td>
                   </tr>
@@ -328,12 +328,12 @@ export default function ItemsPage() {
         {/* PAGINATION */}
         <div className="flex justify-end items-center mt-4 gap-2">
           <button className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
-            disabled={page === 1} onClick={() => setPage((p) => Math.max(p - 1, 1))}>Previous</button>
+            disabled={page === 1} onClick={() => setPage((p) => Math.max(p - 1, 1))}>Sebelumnya</button>
           <span className="mx-2 text-gray-700 select-none">
-            Page <b>{page}</b> of <b>{totalPages}</b>
+            Halaman <b>{page}</b> dari <b>{totalPages}</b>
           </span>
           <button className="px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
-            disabled={page === totalPages} onClick={() => setPage((p) => Math.min(p + 1, totalPages))}>Next</button>
+            disabled={page === totalPages} onClick={() => setPage((p) => Math.min(p + 1, totalPages))}>Selanjutnya</button>
         </div>
       </div>
       {modal && user.role === "admin_inventory" && (

@@ -48,7 +48,7 @@ export default function NavbarRight() {
                   className="w-full text-left px-4 py-2 hover:bg-gray-100"
                   onClick={() => router.push("/profile")}
                 >
-                  Account
+                  Akun
                 </button>
               </li>
               <li>
@@ -56,7 +56,7 @@ export default function NavbarRight() {
                   className="w-full text-left px-4 py-2 hover:bg-gray-100"
                   onClick={handleLogout}
                 >
-                  Logout
+                  Keluar
                 </button>
               </li>
             </ul>

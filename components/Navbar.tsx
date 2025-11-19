@@ -26,7 +26,7 @@ export default function Navbar() {
         />
         {/* Judul */}
         <h1 className="font-bold text-base md:text-lg break-words text-left">
-          Komnas HAM IT Loan System
+          Website Peminjaman Barang Komnas HAM
         </h1>
       </div>
 

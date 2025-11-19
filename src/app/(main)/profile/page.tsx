@@ -141,7 +141,7 @@ export default function ProfilePage() {
           <ArrowLeft size={26} />
           Kembali
         </button>
-        <h1 className="text-2xl font-bold mb-6 text-black">Profile Account</h1>
+        <h1 className="text-2xl font-bold mb-6 text-black">Akun Profil</h1>
         <div className="flex gap-8 items-start flex-col md:flex-row">
           {/* AVATAR */}
           <div className="flex flex-col items-center md:w-1/3 w-full mb-6 md:mb-0">
